@@ -74,7 +74,7 @@ def makelistpretty(fixthislist):
         else:
             miscshit.append(craft)
             #print("fucked up")
-    prettylistfinal = ['LUCKY AUGS======']+lucky_augs+ ["AUGS======="]+ augs + ['REMOVE=====']+  removes + ["REMOVE/ADD====="]+  remove_add + ["REMOVE-NON/ADD========"]+  removenon_add + ["REFORGES======="]+  reforges + ["DIVINING====="]+ divines+ ["RESIST CHANGING====="]+ resistbending +["ADDING IMPLICITS ======"]+ implictshit+ ["SACRIFICE===="]+ sacrifice+ ["EXCHANGE====="]+ exchange+ ["CHANGE====="]+ bethechangeyouwanttosee + ["MISC======"]+ miscshit
+    prettylistfinal = ['\nLUCKY AUGS======']+lucky_augs+ ["\nAUGS======="]+ augs + ['\nREMOVE=====']+  removes + ["\nREMOVE/ADD====="]+  remove_add + ["\nREMOVE-NON/ADD========"]+  removenon_add + ["\nREFORGES======="]+  reforges + ["\nDIVINING====="]+ divines+ ["\nRESIST CHANGING====="]+ resistbending +["\nADDING IMPLICITS ======"]+ implictshit+ ["\nSACRIFICE===="]+ sacrifice+ ["\nEXCHANGE====="]+ exchange+ ["\nCHANGE====="]+ bethechangeyouwanttosee + ["\nMISC======"]+ miscshit
     #prettylistfinal = remove_add
     
     return prettylistfinal
