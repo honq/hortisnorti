@@ -1,18 +1,27 @@
-import requests, json, csv, pandas
-username = 'prideandacomplishment' #account username
-poesessid = 'fundingsecured420' #chrome://settings/cookies/detail?site=pathofexile.com
-tabindex = '17' #count starts at 0, my tab is on 18 counting from 1
+import requests, json, csv
 
-url = 'https://www.pathofexile.com/character-window/get-stash-items?league=Harvest&tabs=0&tabIndex=' + tabindex + '&accountName=' + username
-payload = {'POESESSID' : poesessid}
-response = requests.post(url, cookies=payload)
-print(response.status_code)
-if response.status_code == 200:
-    data = response.json()
- 
+username = 'youraccountname' #account username
+poesessid = 'fundingsekiroshadowdiethrice' #chrome://settings/cookies/detail?site=pathofexile.com
+tabindex = ['17','18'] #count starts at 0, put tabs containing only horticrafting benches
 
-#gettin DUPES
-#https://thispointer.com/python-find-duplicates-in-a-list-with-frequency-count-index-positions/
+
+def combineResponseLists(dict1, dict2):
+    itemlist = dict1["items"] + dict2["items"]#
+    return itemlist
+
+def grabTabDataToJSON(tabIndex):
+    url = 'https://www.pathofexile.com/character-window/get-stash-items?league=Harvest&tabs=0&tabIndex=' + str(tabIndex) + '&accountName=' + username
+    payload = {'POESESSID' : poesessid}
+    response = requests.post(url, cookies=payload)
+    return response.json()
+
+def removeGGGtextformatting(uglystring):
+    uglystring = uglystring[0:-5] #take out seed ilvl
+    cleanstring = uglystring.replace("<white>", "")
+    cleanstring = cleanstring.replace("{", "")
+    cleanstring = cleanstring.replace("}", "")    
+    return cleanstring
+
 def getDuplicatesWithCount(listOfElems):
     ''' Get frequency count of duplicate elements in the given list '''
     dictOfElems = dict()
@@ -74,43 +83,50 @@ def makelistpretty(fixthislist):
         else:
             miscshit.append(craft)
             #print("fucked up")
-    prettylistfinal = ['\nLUCKY AUGS======']+lucky_augs+ ["\nAUGS======="]+ augs + ['\nREMOVE=====']+  removes + ["\nREMOVE/ADD====="]+  remove_add + ["\nREMOVE-NON/ADD========"]+  removenon_add + ["\nREFORGES======="]+  reforges + ["\nDIVINING====="]+ divines+ ["\nRESIST CHANGING====="]+ resistbending +["\nADDING IMPLICITS ======"]+ implictshit+ ["\nSACRIFICE===="]+ sacrifice+ ["\nEXCHANGE====="]+ exchange+ ["\nCHANGE====="]+ bethechangeyouwanttosee + ["\nMISC======"]+ miscshit
+    prettylistfinal = ['\nLUCKY AUGS======, Craft Quantity']+lucky_augs+ ["\nAUGS======="]+ augs + ['\nREMOVE=====']+  removes + ["\nREMOVE/ADD====="]+  remove_add + ["\nREMOVE-NON/ADD========"]+  removenon_add + ["\nREFORGES======="]+  reforges + ["\nDIVINING====="]+ divines+ ["\nRESIST CHANGING====="]+ resistbending +["\nADDING IMPLICITS ======"]+ implictshit+ ["\nSACRIFICE===="]+ sacrifice+ ["\nEXCHANGE====="]+ exchange+ ["\nCHANGE====="]+ bethechangeyouwanttosee + ["\nMISC======"]+ miscshit
     #prettylistfinal = remove_add
     
     return prettylistfinal
 
 
+#going through tabindex and grabbing the item info
+for i in range(len(tabindex)):
+    if i == 0: #for first tab
+        firsttab = grabTabDataToJSON(tabindex[i])
+        response1 = firsttab
+
+    if i > 0: #for tabs after first
+        response2 = grabTabDataToJSON(tabindex[i])        
+        combinedItemslist = combineResponseLists(response1, response2)
+        combinedItemsdict = {'items': combinedItemslist}
+        response1 = combinedItemsdict
+
+
+#Start processing the 'items' dict
+#
 benchlist = [] #nested list of crafts in each bench
 notcountedlist = [] #unsorted list of crafts all expanded out
-js = data.get('items')
+js = combinedItemsdict.get('items')
 for i in js:
-    benchlist.append(i.get('craftedMods')) #each bench is a list in ['x','y','z']
+    benchlist.append(i.get('craftedMods')) #each bench is a list with crafts ['x','y','z']
 
 #seperating crafts from benches to individual lines
 for i in benchlist:
     for j in i:
-        uglystring = j[0:-5] #take out seed ilvl
-        beautifulstring = uglystring.replace("<white>", "")
-        beautifulstring = beautifulstring.replace("{", "")
-        beautifulstring = beautifulstring.replace("}", "")
+        uglystring = j #take out seed ilvl
+        beautifulstring = removeGGGtextformatting(uglystring)
         notcountedlist.append(beautifulstring) #going to seperate list for sorting
 
-
 countedlist = [] #almost home
+
 # Get a dictionary containing duplicate elements in list and their frequency count
-dictOfElems = getDuplicatesWithCount(notcountedlist)     
-for key, value in dictOfElems.items():
-    #print(key , ' :: ', value)
-    countedlist.append('"' + key + '"' +","+ str(value)) #csv format, using "" to keep commas inside craft descrptions
+dictOfcrafts = getDuplicatesWithCount(notcountedlist)
+
+for key, value in dictOfcrafts.items():
+    countedlist.append('"' + key + '"' +","+ str(value)) #csv format, using "" to keep commas inside craft descrptions for csv export
 
 countedlist = [item.lower() for item in countedlist] #lower case everything to be searchable
-prettylistfinalfinal = makelistpretty(countedlist) #pass countedlist into the sorter to combine craft types
-
-# for i in countedlist:
-#     print(i)
-#     print(len(countedlist), type(countedlist))
-# print(len(countedlist))
-
+prettylistfinalfinal = makelistpretty(countedlist) #pass countedlist into the sorter to combine counted craft types
 
 #begin writing to csv
 outputFile = open('horti_crafts.csv', 'w')
@@ -118,11 +134,5 @@ outputFile = open('horti_crafts.csv', 'w')
 for craftline in prettylistfinalfinal:
     outputFile.write( craftline + '\n') #already in csv format, just seperate lines
     
-# Get a dictionary containing duplicate elements in list and their frequency count
-#dictOfElems = getDuplicatesWithCount(notcountedlist)     
-#for key, value in dictOfElems.items():
-#        print(key , ' :: ', value)
-#        outputFile.write( '"' + key + '"' +","+ str(value) + '\n') #csv format, using "" to keep commas inside craft descrptions
-
 
 outputFile.close()
